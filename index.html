@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Game Development – Geschichte Sigma</title>
+<title>Game Development – Geschichte</title>
 
 <style>
     body {
@@ -40,7 +40,7 @@
         cursor: pointer;
         background: #2563eb;
         color: white;
-        margin: 10px;
+        margin: 10px 10px 10px 0;
     }
 
     button.secondary {
@@ -50,10 +50,6 @@
 
     .hidden {
         display: none;
-    }
-
-    .quiz-box {
-        margin-bottom: 30px;
     }
 
     input {
@@ -69,6 +65,11 @@
         margin-top: 10px;
         padding: 10px;
         border-radius: 8px;
+        font-weight: bold;
+    }
+
+    .message {
+        margin-top: 15px;
         font-weight: bold;
     }
 
@@ -99,22 +100,30 @@
 <!-- HOME -->
 <div id="home" class="card">
     <h2>Start</h2>
-    <p>Wähle einen Bereich:</p>
-    <button onclick="showQuiz()">Quiz</button>
-    <button onclick="showGame()">Mini-Game</button>
+
+    <p>Freischaltung für interaktive Inhalte:</p>
+    <input id="passwordInput" placeholder="Passwort eingeben">
+    <button onclick="unlock()">Freischalten</button>
+    <div id="passwordMsg" class="message"></div>
+
+    <hr style="margin: 30px 0;">
+
+    <button onclick="openQuiz()">Quiz</button>
+    <button onclick="openGame()">Pong</button>
+    <button class="secondary" onclick="showHandout()">Handout</button>
 </div>
 
 <!-- QUIZ -->
 <div id="quiz" class="card hidden">
     <h2>Quiz</h2>
 
-    <div class="quiz-box">
+    <div>
         <p><strong>Wie heißt eines der ersten Videospiele?</strong></p>
         <input id="q1" placeholder="Antwort eingeben und Enter drücken">
         <div id="r1" class="result"></div>
     </div>
 
-    <div class="quiz-box">
+    <div style="margin-top: 25px;">
         <p><strong>Welche frühe Programmiersprache wurde oft genutzt?</strong></p>
         <input id="q2" placeholder="Antwort eingeben und Enter drücken">
         <div id="r2" class="result"></div>
@@ -125,7 +134,7 @@
 
 <!-- GAME -->
 <div id="game" class="card hidden">
-    <h2>Mini-Game (Pong)</h2>
+    <h2>Pong</h2>
     <p>Bewege den Schläger mit der Maus</p>
 
     <canvas id="pong" width="500" height="300"></canvas>
@@ -139,32 +148,81 @@
     <button class="secondary" onclick="goHome()">Zurück</button>
 </div>
 
+<!-- HANDOUT -->
+<div id="handout" class="card hidden">
+    <h2>Handout</h2>
+    <p><em>Still under development.</em></p>
+    <button class="secondary" onclick="goHome()">Zurück</button>
+</div>
+
 </main>
 
 <script>
+/* =====================
+   FREISCHALTUNG
+===================== */
+const PASSWORD = "freischalten";
+let unlocked = localStorage.getItem("unlocked") === "true";
+
+function unlock() {
+    const input = document.getElementById("passwordInput").value.trim();
+    const msg = document.getElementById("passwordMsg");
+
+    if (input === PASSWORD) {
+        unlocked = true;
+        localStorage.setItem("unlocked", "true");
+        msg.textContent = "Freigeschaltet";
+        msg.style.color = "green";
+    } else {
+        msg.textContent = "Falsches Passwort";
+        msg.style.color = "red";
+    }
+}
+
 /* =====================
    NAVIGATION
 ===================== */
 const home = document.getElementById("home");
 const quiz = document.getElementById("quiz");
 const game = document.getElementById("game");
+const handout = document.getElementById("handout");
 
-function showQuiz() {
+function openQuiz() {
+    if (!unlocked) {
+        showMsg("Noch nicht freigeschaltet");
+        return;
+    }
     home.classList.add("hidden");
     quiz.classList.remove("hidden");
 }
 
-function showGame() {
+function openGame() {
+    if (!unlocked) {
+        showMsg("Noch nicht freigeschaltet");
+        return;
+    }
     home.classList.add("hidden");
     game.classList.remove("hidden");
     startGame();
 }
 
+function showHandout() {
+    home.classList.add("hidden");
+    handout.classList.remove("hidden");
+}
+
 function goHome() {
     quiz.classList.add("hidden");
     game.classList.add("hidden");
+    handout.classList.add("hidden");
     home.classList.remove("hidden");
     running = false;
+}
+
+function showMsg(text) {
+    const msg = document.getElementById("passwordMsg");
+    msg.textContent = text;
+    msg.style.color = "red";
 }
 
 /* =====================
@@ -197,21 +255,8 @@ q2.addEventListener("keydown", e => e.key === "Enter" && checkAnswer("q2", "r2")
 const canvas = document.getElementById("pong");
 const ctx = canvas.getContext("2d");
 
-const paddle = {
-    x: 15,
-    y: canvas.height / 2 - 35,
-    width: 10,
-    height: 70
-};
-
-const ball = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    r: 6,
-    vx: 3,
-    vy: 3,
-    maxSpeed: 5
-};
+const paddle = { x: 15, y: 115, width: 10, height: 70 };
+const ball = { x: 250, y: 150, r: 6, vx: 3, vy: 3 };
 
 let score = 0;
 let highscore = localStorage.getItem("highscore") || 0;
@@ -226,8 +271,8 @@ canvas.addEventListener("mousemove", e => {
 });
 
 function startGame() {
-    ball.x = canvas.width / 2;
-    ball.y = canvas.height / 2;
+    ball.x = 250;
+    ball.y = 150;
     ball.vx = 3;
     ball.vy = 3;
     score = 0;
@@ -240,11 +285,9 @@ function loop() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Paddle
     ctx.fillStyle = "white";
     ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
 
-    // Ball
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
     ctx.fill();
@@ -252,37 +295,18 @@ function loop() {
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // Wand oben/unten
-    if (ball.y - ball.r <= 0 || ball.y + ball.r >= canvas.height) {
-        ball.vy *= -1;
-    }
+    if (ball.y - ball.r <= 0 || ball.y + ball.r >= canvas.height) ball.vy *= -1;
 
-    // Paddle Collision
     if (
         ball.vx < 0 &&
         ball.x - ball.r <= paddle.x + paddle.width &&
-        ball.x - ball.r >= paddle.x &&
         ball.y >= paddle.y &&
         ball.y <= paddle.y + paddle.height
     ) {
-        ball.x = paddle.x + paddle.width + ball.r;
         ball.vx *= -1;
-
-        const hit = (ball.y - paddle.y) / paddle.height - 0.5;
-        ball.vy += hit * 2;
-
-        ball.vx = Math.min(ball.vx, ball.maxSpeed);
-        ball.vy = Math.max(Math.min(ball.vy, ball.maxSpeed), -ball.maxSpeed);
-
         score++;
     }
 
-    // Rechte Wand
-    if (ball.x + ball.r >= canvas.width) {
-        ball.vx *= -1;
-    }
-
-    // Game Over
     if (ball.x - ball.r < 0) {
         running = false;
         if (score > highscore) {
